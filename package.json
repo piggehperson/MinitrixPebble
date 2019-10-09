@@ -1,0 +1,49 @@
+{
+    "author": "lavendork",
+    "dependencies": {
+        "pebble-clay": "^1.0.4"
+    },
+    "keywords": [],
+    "name": "minitrix",
+    "pebble": {
+        "capabilities": [
+            "configurable"
+        ],
+        "displayName": "Minitrix",
+        "enableMultiJS": true,
+        "messageKeys": [
+            "TimeDisplayMode",
+            "WatchDialStyle"
+        ],
+        "projectType": "native",
+        "resources": {
+            "media": [
+                {
+                    "file": "images/classic_bg",
+                    "name": "CLASSIC_BG",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/omniverse_bg",
+                    "name": "OMNIVERSE_BG",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                }
+            ]
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt",
+            "chalk",
+            "diorite",
+            "emery"
+        ],
+        "uuid": "51fc1718-a9d7-4396-9b0a-6225af03ffa7",
+        "watchapp": {
+            "watchface": true
+        }
+    },
+    "version": "1.0.0"
+}
