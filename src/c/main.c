@@ -1,17 +1,22 @@
 #include <pebble.h>
 #include <math.h>
 #include "main.h"
+#include "path_definitions.c"
 
 #define ROUND PBL_IF_ROUND_ELSE(true, false)
 #define COLORS PBL_IF_COLOR_ELSE(true, false)
 
 static Window *s_main_window;
-static BitmapLayer *s_face_layer;
-static GBitmap *s_omniverse_bitmap;
-static GBitmap *s_classic_bitmap;
 static TextLayer *s_time_layer;
 static Layer *s_analog_hands_layer;
 
+// Path based watchface defs
+static Layer *s_face_layer;
+
+// Color defs for path watchface
+static GColor *s_primary_color; // Used for markings on OV, and default status color on Classic
+
+// Watch status
 static bool s_bluetooth_connected;
 static int s_battery_level;
 
@@ -21,35 +26,40 @@ static int h;
 // A struct for our specific settings (see main.h)
 ClaySettings settings;
 
-static void update_status_light() {
+static GColor update_status_light() {
   //Battery and connection status light
-  if (COLORS) {
+
     if (!s_bluetooth_connected) {
       // Show bluetooth disconnected light
-      bitmap_layer_set_background_color(s_face_layer, GColorChromeYellow);
       text_layer_set_text_color(s_time_layer, GColorBlack);
+      if (COLORS) {
+        return GColorChromeYellow;
+      } else {
+        return GColorDarkGray;
+      }
     } else if (s_battery_level <= 0.1) {
       // Show low battery light
-      bitmap_layer_set_background_color(s_face_layer, GColorRed);
       text_layer_set_text_color(s_time_layer, GColorBlack);
+      if (COLORS) {
+        return GColorRed;
+      } else {
+        return GColorDarkGray;
+      }
     } else {
       // No problems here, use default light and text colors
       if (settings.classic_dial_style) {
-        bitmap_layer_set_background_color(s_face_layer, GColorBrightGreen);
         text_layer_set_text_color(s_time_layer, GColorBlack);
+        if (COLORS) {
+          return GColorSpringBud;
+        } else {
+          return GColorWhite;
+        }
       } else {
-        bitmap_layer_set_background_color(s_face_layer, GColorBlack);
         text_layer_set_text_color(s_time_layer, GColorWhite);
+        return GColorBlack;
       }
     }
-  } else {
-    // Device doesnt support colors, use default text color
-      if (settings.classic_dial_style) {
-        text_layer_set_text_color(s_time_layer, GColorBlack);
-      } else {
-        text_layer_set_text_color(s_time_layer, GColorWhite);
-      }
-  }
+  
 }
 
 // Initialize the default settings
@@ -84,14 +94,9 @@ static void prv_update_display() {
     layer_set_hidden(text_layer_get_layer(s_time_layer), false);
   }
   
-  // Classic or OV
-  if (settings.classic_dial_style) {
-    bitmap_layer_set_bitmap(s_face_layer, s_classic_bitmap);
-  } else {
-    bitmap_layer_set_bitmap(s_face_layer, s_omniverse_bitmap);
-  }
-  
   update_status_light();
+
+  layer_mark_dirty(s_face_layer);
 }
 
 // Handle the response from AppMessage
@@ -115,9 +120,7 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 static void bluetooth_callback(bool connected) {
   s_bluetooth_connected = connected;
   
-  if (COLORS) {
-    update_status_light();
-  }
+  update_status_light();
   
   if(!connected) {
     // Issue a vibrating alert
@@ -128,9 +131,7 @@ static void bluetooth_callback(bool connected) {
 static void battery_callback(BatteryChargeState state) {
   // Record new battery level
   s_battery_level = (int) state.charge_percent;
-   if (COLORS) {
-     update_status_light();
-   }
+   update_status_light();
 }
 
 static void update_time() {
@@ -148,10 +149,6 @@ static void update_time() {
   
   //Update the analog layer
   layer_mark_dirty(s_analog_hands_layer);
-}
-
-int getTenthOf(float value, float tenth) {
-  return (int)value/(10/tenth);
 }
 
 static void analog_hands_layer_update_proc(Layer *layer, GContext *ctx) {
@@ -211,6 +208,101 @@ static void analog_hands_layer_update_proc(Layer *layer, GContext *ctx) {
   graphics_draw_line(ctx, hour_hand, center);
 }
 
+static void face_layer_update_proc(Layer *layer, GContext *ctx) {
+  // Figure out what color to draw status light
+
+  if (settings.classic_dial_style) {
+    // draw the classic face
+    
+    //figure out if round or not
+    if (ROUND) {
+      // draw classic/round
+      graphics_context_set_fill_color(ctx, GColorDarkGray);
+      graphics_fill_rect(ctx, GRect(0, 0, 180, 180), 0, GCornersAll);
+
+      // Status light
+      graphics_context_set_fill_color(ctx, update_status_light());
+      gpath_draw_filled(ctx, gpath_create(&PATH_CLASSIC_STATUS_LIGHT_ROUND));
+
+      // Black carets
+      graphics_context_set_fill_color(ctx, GColorBlack);
+      gpath_draw_filled(ctx, gpath_create(&PATH_CLASSIC_LEFT_CARET_ROUND));
+      gpath_draw_filled(ctx, gpath_create(&PATH_CLASSIC_RIGHT_CARET_ROUND));
+    } else{
+      // draw classic/rect
+      graphics_context_set_fill_color(ctx, GColorDarkGray);
+      graphics_fill_rect(ctx, GRect(0, 0, 144, 168), 0, GCornersAll);
+
+      // Status light
+      graphics_context_set_fill_color(ctx, update_status_light());
+      gpath_draw_filled(ctx, gpath_create(&PATH_CLASSIC_STATUS_LIGHT));
+
+      // Black carets
+      graphics_context_set_fill_color(ctx, GColorBlack);
+      gpath_draw_filled(ctx, gpath_create(&PATH_CLASSIC_LEFT_CARET));
+      gpath_draw_filled(ctx, gpath_create(&PATH_CLASSIC_RIGHT_CARET));
+
+      // Circle stroke
+      graphics_context_set_stroke_color(ctx, GColorBlack);
+      graphics_context_set_stroke_width(ctx, 12);
+      graphics_draw_circle(ctx, GPoint(72, 84), 68);
+    }
+  } else {
+    // draw the OV face
+    
+    //figure out if round or not
+    if (ROUND) {
+      // draw OV/round
+      graphics_context_set_fill_color(ctx, GColorWhite);
+      graphics_fill_rect(ctx, GRect(0, 0, 180, 180), 0, GCornersAll);
+
+      // Circle black bg
+      graphics_context_set_fill_color(ctx, GColorBlack);
+      graphics_fill_circle(ctx, GPoint(90, 90), 72);
+
+      // Status light
+      graphics_context_set_fill_color(ctx, update_status_light());
+      gpath_draw_filled(ctx, gpath_create(&PATH_OV_STATUS_LIGHT_ROUND));
+
+      // Circle stroke overlay
+      graphics_context_set_stroke_color(ctx, GColorBlack);
+      graphics_context_set_stroke_width(ctx, 4);
+      graphics_draw_circle(ctx, GPoint(90, 90), 70);
+      
+      // Marking BG/stroke
+      graphics_context_set_fill_color(ctx, GColorBlack);
+      gpath_draw_filled(ctx, gpath_create(&PATH_OV_LEFT_MARKING_BG_ROUND));
+      gpath_draw_filled(ctx, gpath_create(&PATH_OV_RIGHT_MARKING_BG_ROUND));
+
+      // Markings
+      graphics_context_set_fill_color(ctx, GColorJaegerGreen);
+      gpath_draw_filled(ctx, gpath_create(&PATH_OV_LEFT_MARKING_ROUND));
+      gpath_draw_filled(ctx, gpath_create(&PATH_OV_RIGHT_MARKING_ROUND));
+
+    } else{
+      // draw OV/rect
+      // Status light/center area
+      graphics_context_set_fill_color(ctx, update_status_light());
+      gpath_draw_filled(ctx, gpath_create(&PATH_OV_STATUS_LIGHT));
+
+      // black BG and stroke behind markings
+      graphics_context_set_fill_color(ctx, GColorBlack);
+      gpath_draw_filled(ctx, gpath_create(&PATH_OV_LEFT_MARKING_BG));
+      gpath_draw_filled(ctx, gpath_create(&PATH_OV_RIGHT_MARKING_BG));
+  
+      // Markings
+      if (COLORS) {
+        graphics_context_set_fill_color(ctx, GColorJaegerGreen);
+      } else {
+        graphics_context_set_fill_color(ctx, GColorWhite);
+      }
+      gpath_draw_filled(ctx, gpath_create(&PATH_OV_LEFT_MARKING));
+      gpath_draw_filled(ctx, gpath_create(&PATH_OV_RIGHT_MARKING));
+    }
+  }
+  
+}
+
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_time();
 }
@@ -222,18 +314,11 @@ static void main_window_load(Window *window) {
   
   w = bounds.size.w;
   h = bounds.size.h;
-  
-  // Create the layer that shows the Omnitrix dial
-  s_face_layer = bitmap_layer_create(bounds);
-  
-  // Set the bitmap onto the layer and add to the window
-  // Create GBitmap
-  s_omniverse_bitmap = gbitmap_create_with_resource(RESOURCE_ID_OMNIVERSE_BG);
-  s_classic_bitmap = gbitmap_create_with_resource(RESOURCE_ID_CLASSIC_BG);
-  //bitmap_layer_set_bitmap(s_face_layer, s_omniverse_bitmap);
-  bitmap_layer_set_compositing_mode(s_face_layer, GCompOpSet);
-  layer_add_child(window_layer, bitmap_layer_get_layer(s_face_layer));
-  
+
+  // Create layer for path-based face
+  s_face_layer = layer_create(bounds);
+  layer_set_update_proc(s_face_layer, face_layer_update_proc);
+  layer_add_child(window_layer, s_face_layer);  
   
   // Create analog hands Layer
   s_analog_hands_layer = layer_create(bounds);
@@ -264,12 +349,8 @@ static void main_window_unload(Window *window) {
   // Destroy TextLayer
   text_layer_destroy(s_time_layer);
   // Destroy face layer
-  bitmap_layer_destroy(s_face_layer);
+  layer_destroy(s_face_layer);
   layer_destroy(s_analog_hands_layer);
-  
-  // Destroy GBitmap
-  gbitmap_destroy(s_omniverse_bitmap);
-  gbitmap_destroy(s_classic_bitmap);
 }
 
 static void init() {

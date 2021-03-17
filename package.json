@@ -16,22 +16,7 @@
             "WatchDialStyle"
         ],
         "projectType": "native",
-        "resources": {
-            "media": [
-                {
-                    "file": "images/classic_bg",
-                    "name": "CLASSIC_BG",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
-                },
-                {
-                    "file": "images/omniverse_bg",
-                    "name": "OMNIVERSE_BG",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
-                }
-            ]
-        },
+        "resources": {},
         "sdkVersion": "3",
         "targetPlatforms": [
             "aplite",
