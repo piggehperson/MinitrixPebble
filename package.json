@@ -16,7 +16,16 @@
             "WatchDialStyle"
         ],
         "projectType": "native",
-        "resources": {},
+        "resources": {
+            "media": [
+                {
+                    "menuIcon": true,
+                    "type": "png",
+                    "name": "IMAGE_MENU_ICON",
+                    "file": "mintrix_icon_bitmap.png"
+                }
+            ]
+        },
         "sdkVersion": "3",
         "targetPlatforms": [
             "aplite",
