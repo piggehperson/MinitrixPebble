@@ -4,14 +4,14 @@
 static const GPathInfo PATH_OV_STATUS_LIGHT = {
   .num_points = 8,
   .points = (GPoint []) {
-    {14, 0}, {130, 0}, {101, 83}, {101, 85}, {130, 168},
-    {14, 168}, {43, 85}, {43, 83}
+    {12, 0}, {132, 0}, {103, 83}, {103, 85}, {132, 168},
+    {12, 168}, {41, 85}, {41, 83}
     }
 };
 static const GPathInfo PATH_OV_LEFT_MARKING_BG = {
   .num_points = 6,
   .points = (GPoint []) {
-    {0, 0}, {18, 0}, {47, 83}, {47, 85}, {18,168}, {0, 168}
+    {-1, 0}, {18, 0}, {47, 83}, {47, 85}, {18,168}, {-1, 168}
     }
 };
 static const GPathInfo PATH_OV_LEFT_MARKING = {
@@ -106,8 +106,8 @@ static const GPathInfo PATH_CLASSIC_RIGHT_CARET = {
 static const GPathInfo PATH_CLASSIC_STATUS_LIGHT_ROUND = {
   .num_points = 8,
   .points = (GPoint []) {
-    {29, 0}, {151, 0}, {116, 88}, {116, 92}, {151, 180},
-    {29, 180}, {64, 92}, {64, 88}
+    {27, 0}, {153, 0}, {118, 88}, {118, 92}, {153, 180},
+    {27, 180}, {62, 92}, {62, 88}
     }
 };
 
