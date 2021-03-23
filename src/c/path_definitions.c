@@ -17,8 +17,8 @@ static const GPathInfo PATH_OV_LEFT_MARKING_BG = {
 static const GPathInfo PATH_OV_LEFT_MARKING = {
   .num_points = 9,
   .points = (GPoint []) {
-    {0, 0}, {14, 0}, {43, 83}, {43, 85}, {14, 168}, {0, 168},
-    {0, 137}, {19, 84}, {0, 31}
+    {-1, 0}, {13, 0}, {42, 83}, {42, 85}, {13, 168}, {-1, 168},
+    {-1, 137}, {18, 84}, {-1, 31}
     }
 };
 static const GPathInfo PATH_OV_RIGHT_MARKING_BG = {
