@@ -9,6 +9,7 @@
 typedef struct ClaySettings {
   bool use_analog_time;
   bool classic_dial_style;
+  bool only_show_time_on_shake;
 } __attribute__((__packed__)) ClaySettings;
 
 static void prv_default_settings();

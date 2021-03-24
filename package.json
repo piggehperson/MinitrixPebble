@@ -13,7 +13,8 @@
         "enableMultiJS": true,
         "messageKeys": [
             "TimeDisplayMode",
-            "WatchDialStyle"
+            "WatchDialStyle",
+            "OnlyShowTimeOnShake"
         ],
         "projectType": "native",
         "resources": {

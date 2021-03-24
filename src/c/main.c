@@ -20,6 +20,10 @@ static GColor *s_primary_color; // Used for markings on OV, and default status c
 static bool s_bluetooth_connected;
 static int s_battery_level;
 
+// Var that decides if time should be showing or not.
+// Ignored if settings.only_show_time_on_shake is false
+static bool s_should_show_time;
+
 static int w;
 static int h;
 
@@ -66,6 +70,7 @@ static GColor update_status_light() {
 static void prv_default_settings() {
   settings.use_analog_time = false;
   settings.classic_dial_style = false;
+  settings.only_show_time_on_shake = false;
 }
 
 // Read settings from persistent storage
@@ -83,18 +88,54 @@ static void prv_save_settings() {
   prv_update_display();
 }
 
+static void update_time() {
+  // Get a tm structure
+  time_t temp = time(NULL);
+  struct tm *tick_time = localtime(&temp);
+
+  // Write the current hours and minutes into a buffer
+  static char s_buffer[8];
+  strftime(s_buffer, sizeof(s_buffer), clock_is_24h_style() ?
+                                          "%H\n%M" : "%I\n%M", tick_time);
+
+  // Display this time on the TextLayer
+  text_layer_set_text(s_time_layer, s_buffer);
+  
+  //Update the analog layer
+  layer_mark_dirty(s_analog_hands_layer);
+}
+
+static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  update_time();
+}
+
 // Update the display elements
 static void prv_update_display() {
-  // Analog or digital
-  if (settings.use_analog_time) {
-    layer_set_hidden(s_analog_hands_layer, false);
-    layer_set_hidden(text_layer_get_layer(s_time_layer), true);
-  } else {
-    layer_set_hidden(s_analog_hands_layer, true);
-    layer_set_hidden(text_layer_get_layer(s_time_layer), false);
-  }
+  // Reset tick timer service
+  tick_timer_service_unsubscribe();
   
-  update_status_light();
+  // Check if time should be showing. This should do:
+  // If the settings switch is turned off, always show time.
+  // If the settings switch is turned on and time should be showing, show time.
+  if (!settings.only_show_time_on_shake || (settings.only_show_time_on_shake && s_should_show_time)) {
+    // Time should be showing, resub to tick timer
+    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+    
+    // Analog or digital
+    if (settings.use_analog_time) {
+      // Show analog layer, hide digital layer
+      layer_set_hidden(s_analog_hands_layer, false);
+      layer_set_hidden(text_layer_get_layer(s_time_layer), true);
+    } else {
+      // Show digital layer, hide analog layer
+      layer_set_hidden(s_analog_hands_layer, true);
+      layer_set_hidden(text_layer_get_layer(s_time_layer), false);
+    }
+  } else {
+    // Hide both layers
+      layer_set_hidden(s_analog_hands_layer, true);
+      layer_set_hidden(text_layer_get_layer(s_time_layer), true);
+  }
 
   layer_mark_dirty(s_face_layer);
 }
@@ -111,6 +152,12 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
   Tuple *watch_dial_style_t = dict_find(iter, MESSAGE_KEY_WatchDialStyle);
   if (watch_dial_style_t) {
     settings.classic_dial_style = strcmp(watch_dial_style_t->value->cstring, "classic") == 0;
+  }
+
+  // only show time when shaken
+  Tuple *only_show_shaken_t = dict_find(iter, MESSAGE_KEY_WatchDialStyle);
+  if (only_show_shaken_t) {
+    settings.only_show_time_on_shake = only_show_shaken_t->value;
   }
 
   // Save the new settings to persistent storage
@@ -134,21 +181,23 @@ static void battery_callback(BatteryChargeState state) {
    update_status_light();
 }
 
-static void update_time() {
-  // Get a tm structure
-  time_t temp = time(NULL);
-  struct tm *tick_time = localtime(&temp);
+static void on_timer_complete() {
+  s_should_show_time = false;
+  prv_update_display();
+}
 
-  // Write the current hours and minutes into a buffer
-  static char s_buffer[8];
-  strftime(s_buffer, sizeof(s_buffer), clock_is_24h_style() ?
-                                          "%H\n%M" : "%I\n%M", tick_time);
+static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
+  // A tap event occured
+  if (settings.only_show_time_on_shake) {
+    s_should_show_time = true;
 
-  // Display this time on the TextLayer
-  text_layer_set_text(s_time_layer, s_buffer);
-  
-  //Update the analog layer
-  layer_mark_dirty(s_analog_hands_layer);
+    AppTimer *s_show_time_timer = app_timer_register(5000, on_timer_complete, NULL);
+
+    prv_update_display();
+  } else {
+    return;
+  }
+
 }
 
 static void analog_hands_layer_update_proc(Layer *layer, GContext *ctx) {
@@ -212,8 +261,6 @@ static void face_layer_update_proc(Layer *layer, GContext *ctx) {
   // Figure out what color to draw status light
 
   if (settings.classic_dial_style) {
-    // draw the classic face
-    
     //figure out if round or not
     if (ROUND) {
       // draw classic/round
@@ -303,10 +350,6 @@ static void face_layer_update_proc(Layer *layer, GContext *ctx) {
   
 }
 
-static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  update_time();
-}
-
 static void main_window_load(Window *window) {
   // Get information about the Window
   Layer *window_layer = window_get_root_layer(window);
@@ -383,6 +426,9 @@ static void init() {
   
   // Register for battery level updates
   battery_state_service_subscribe(battery_callback);
+
+  // Subscribe to tap events
+  accel_tap_service_subscribe(accel_tap_handler);
   
   // Register for Bluetooth connection updates
   connection_service_subscribe((ConnectionHandlers) {
@@ -392,9 +438,11 @@ static void init() {
 static void deinit() {
   // Destroy Window
   window_destroy(s_main_window);
+  tick_timer_service_unsubscribe();
   battery_state_service_unsubscribe();
   connection_service_unsubscribe();
   app_message_deregister_callbacks();
+  accel_tap_service_unsubscribe();
 }
 
 int main(void) {

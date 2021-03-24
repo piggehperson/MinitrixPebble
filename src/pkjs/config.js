@@ -44,6 +44,14 @@ module.exports = [
         },
       ]
     },
+
+    {
+      "type": "toggle",
+      "messageKey": "OnlyShowTimeOnShake",
+      "defaultValue": "false",
+      "label": "Only show time when you shake the watch",
+      "description": "Looks cool and may save some battery, too."
+    },
     ]
   },
   
