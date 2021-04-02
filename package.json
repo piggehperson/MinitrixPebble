@@ -21,7 +21,7 @@
             "media": [
                 {
                     "menuIcon": true,
-                    "type": "png",
+                    "type": "bitmap",
                     "name": "IMAGE_MENU_ICON",
                     "file": "mintrix_icon_bitmap.png"
                 }
