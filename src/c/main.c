@@ -120,6 +120,7 @@ static void prv_update_display() {
   if (!settings.only_show_time_on_shake || s_should_show_time) {
     // Time should be showing, resub to tick timer
     tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+    update_time();
     
     // Analog or digital
     if (settings.use_analog_time) {
