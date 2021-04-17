@@ -117,7 +117,7 @@ static void prv_update_display() {
   // Check if time should be showing. This should do:
   // If the settings switch is turned off, always show time.
   // If the settings switch is turned on and time should be showing, show time.
-  if (!settings.only_show_time_on_shake || (settings.only_show_time_on_shake && s_should_show_time)) {
+  if (!settings.only_show_time_on_shake || s_should_show_time) {
     // Time should be showing, resub to tick timer
     tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
     
@@ -155,9 +155,9 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
   }
 
   // only show time when shaken
-  Tuple *only_show_shaken_t = dict_find(iter, MESSAGE_KEY_WatchDialStyle);
+  Tuple *only_show_shaken_t = dict_find(iter, MESSAGE_KEY_OnlyShowTimeOnShake);
   if (only_show_shaken_t) {
-    settings.only_show_time_on_shake = only_show_shaken_t->value;
+    settings.only_show_time_on_shake = only_show_shaken_t->value->int32 == 1;
   }
 
   // Save the new settings to persistent storage
