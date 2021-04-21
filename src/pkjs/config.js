@@ -54,6 +54,26 @@ module.exports = [
     },
     ]
   },
+
+  {
+    "type": "section",
+    "items": [
+      {
+      "type": "toggle",
+      "messageKey": "EnableColorOverride",
+      "defaultValue": "false",
+      "label": "Use a custom color",
+    },
+
+    {
+      "type": "color",
+      "messageKey": "CustomColorValue",
+      "defaultValue": "FFFFFF",
+      "label": "Custom color",
+      "allowGray": "true",
+      },
+    ]
+  },
   
   {
     "type": "submit",
