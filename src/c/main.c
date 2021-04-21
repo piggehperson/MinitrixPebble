@@ -30,6 +30,32 @@ static int h;
 // A struct for our specific settings (see main.h)
 ClaySettings settings;
 
+static GColor get_default_color() {
+  if (settings.classic_dial_style) {
+    // Classic dial, this is the status ligth in the middle
+    if (settings.enable_color_override) {
+      return settings.custom_color_value;
+    } else {
+      if (COLORS) {
+          return GColorSpringBud;
+        } else {
+          return GColorWhite;
+        }
+    }
+  } else {
+    // Omniverse dial, these are the stripes on the sides
+    if (settings.enable_color_override) {
+      return settings.custom_color_value;
+    } else {
+      if (COLORS) {
+          return GColorJaegerGreen;
+        } else {
+          return GColorWhite;
+        }
+    }
+  }
+}
+
 static GColor update_status_light() {
   //Battery and connection status light
 
@@ -53,11 +79,7 @@ static GColor update_status_light() {
       // No problems here, use default light and text colors
       if (settings.classic_dial_style) {
         text_layer_set_text_color(s_time_layer, GColorBlack);
-        if (COLORS) {
-          return GColorSpringBud;
-        } else {
-          return GColorWhite;
-        }
+        return get_default_color();
       } else {
         text_layer_set_text_color(s_time_layer, GColorWhite);
         return GColorBlack;
@@ -155,10 +177,22 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
     settings.classic_dial_style = strcmp(watch_dial_style_t->value->cstring, "classic") == 0;
   }
 
-  // only show time when shaken
+  // Only show time when shaken
   Tuple *only_show_shaken_t = dict_find(iter, MESSAGE_KEY_OnlyShowTimeOnShake);
   if (only_show_shaken_t) {
     settings.only_show_time_on_shake = only_show_shaken_t->value->int32 == 1;
+  }
+
+  // Enable color override
+  Tuple *color_override_t = dict_find(iter, MESSAGE_KEY_EnableColorOverride);
+  if (color_override_t) {
+    settings.enable_color_override = color_override_t->value->int32 == 1;
+  }
+
+  //Custom color value
+  Tuple *custom_color_t = dict_find(iter, MESSAGE_KEY_CustomColorValue);
+  if (custom_color_t) {
+    settings.custom_color_value = GColorFromHEX(custom_color_t->value->int32);
   }
 
   // Save the new settings to persistent storage
@@ -252,7 +286,7 @@ static void analog_hands_layer_update_proc(Layer *layer, GContext *ctx) {
   if (settings.classic_dial_style) {
     graphics_context_set_stroke_color(ctx, GColorBlack);
   } else {
-    graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorGreen, GColorWhite));
+    graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(get_default_color(), GColorWhite));
   }
   graphics_context_set_stroke_width(ctx, 8);
   graphics_draw_line(ctx, hour_hand, center);
@@ -323,7 +357,7 @@ static void face_layer_update_proc(Layer *layer, GContext *ctx) {
       gpath_draw_filled(ctx, gpath_create(&PATH_OV_RIGHT_MARKING_BG_ROUND));
 
       // Markings
-      graphics_context_set_fill_color(ctx, GColorJaegerGreen);
+      graphics_context_set_fill_color(ctx, get_default_color());
       gpath_draw_filled(ctx, gpath_create(&PATH_OV_LEFT_MARKING_ROUND));
       gpath_draw_filled(ctx, gpath_create(&PATH_OV_RIGHT_MARKING_ROUND));
 
@@ -340,7 +374,7 @@ static void face_layer_update_proc(Layer *layer, GContext *ctx) {
   
       // Markings
       if (COLORS) {
-        graphics_context_set_fill_color(ctx, GColorJaegerGreen);
+        graphics_context_set_fill_color(ctx, get_default_color());
       } else {
         graphics_context_set_fill_color(ctx, GColorWhite);
       }

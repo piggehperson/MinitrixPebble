@@ -10,6 +10,9 @@ typedef struct ClaySettings {
   bool use_analog_time;
   bool classic_dial_style;
   bool only_show_time_on_shake;
+
+  bool enable_color_override;
+  GColor custom_color_value;
 } __attribute__((__packed__)) ClaySettings;
 
 static void prv_default_settings();
